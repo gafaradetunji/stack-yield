@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+yarn.lock
+package-lock.json
+
+# Build and cache artifacts
+build/
+dist/
+cache/
+out/
+.cache/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Foundry specific
+broadcast/
+
+# Project-specific folders
+eth-contract/lib/
+eth-contract/cache/
+eth-contract/out/
+eth-contract/artifacts/
+stack-contract/node_modules/
+stack-contract/dist/
+stack-contract/.stacks-work/
+stack-contract/stacks-contract/
+
+# Hardhat
+artifacts/
+
+# Stacks/Clarity specific
+.stacks-work/
