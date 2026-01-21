@@ -1,0 +1,45 @@
+[
+  {
+    "type": "event",
+    "name": "DepositReceived",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "stacksAddress",
+        "type": "string",
+        "indexed": false
+      },
+      {
+        "name": "depositId",
+        "type": "uint256",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "deposit",
+    "inputs": [
+      {
+        "name": "stacksAddress",
+        "type": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "depositId",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "payable"
+  }
+]

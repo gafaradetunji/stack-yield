@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "lib": ["esnext"],
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "types": ["jest", "node"],
+    "verbatimModuleSyntax": true,
+    "baseUrl": ".",
+    "paths": {
+      "../stack-yield-backend/src/*": ["../stack-yield-backend/src/*"]
+    }
+  },
+  "include": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/__mocks__/**/*.ts",
+    "globals.d.ts"
+  ],
+  "exclude": ["node_modules"]
+}
+
+

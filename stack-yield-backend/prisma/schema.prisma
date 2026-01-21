@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DepositStatus {
+  RECEIVED              // Ethereum deposit event seen
+  BRIDGED               // USDC bridged to Stacks
+  STACKED               // Funds actively stacked
+  WITHDRAW_REQUESTED    // User initiated withdrawal
+  WITHDRAWN             // Funds returned to Ethereum
+}
+
+model User {
+  id             String   @id @default(cuid())
+  ethAddress     String   @unique
+  stacksAddress  String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  deposits       Deposit[]
+  yieldRecords   YieldRecord[]
+
+  @@map("users")
+}
+
+model Deposit {
+  id              String        @id @default(uuid())
+
+  // Blockchain references
+  ethTxHash       String        @unique
+  userEthAddress  String
+  stacksAddress   String
+
+  // Accounting
+  amount          BigInt        // Full deposit amount
+  feeAmount       BigInt        // 0.2% protocol fee
+  netAmount       BigInt        // Amount actually stacked
+
+  // Lifecycle
+  status          DepositStatus
+  createdAt       DateTime      @default(now())
+  bridgedAt       DateTime?
+  stackedAt       DateTime?
+  withdrawnAt     DateTime?
+
+  // Relations
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+
+  yieldRecords    YieldRecord[]
+
+  @@index([userEthAddress])
+  @@map("deposits")
+}
+
+model YieldRecord {
+  id            String   @id @default(cuid())
+
+  userId        String
+  depositId     String
+
+  user          User     @relation(fields: [userId], references: [id])
+  deposit       Deposit  @relation(fields: [depositId], references: [id])
+
+  amount        BigInt   // Yield earned
+  cycleId       String   // Stacking cycle reference
+  distributedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([depositId])
+  @@map("yield_records")
+}

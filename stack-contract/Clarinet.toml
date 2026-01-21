@@ -5,6 +5,11 @@ authors = []
 telemetry = true
 cache_dir = './.cache'
 requirements = []
+
+[networks.testnet]
+node_rpc_address = "https://stacks-node-api.testnet.stacks.co"
+deployment_fee_rate = 10
+
 [contracts.rewards-ledger]
 path = 'contracts/rewards-ledger.clar'
 clarity_version = 3

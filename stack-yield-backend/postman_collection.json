@@ -1,0 +1,64 @@
+{
+  "info": {
+    "name": "Stack Yield Backend",
+    "_postman_id": "stack-yield-backend-collection",
+    "description": "Collection for testing the Stack Yield Backend API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Get Deposits by ETH Address",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/deposits/:ethAddress",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "deposits",
+            ":ethAddress"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Request Withdrawal",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"depositId\": \"<deposit-id>\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/withdrawals",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "withdrawals"
+          ]
+        }
+      }
+    }
+  ]
+}
