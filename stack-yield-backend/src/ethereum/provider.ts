@@ -2,11 +2,18 @@ import { ethers } from 'ethers';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 
-let provider: ethers.JsonRpcProvider;
+export type ProviderType = ethers.JsonRpcProvider | ethers.WebSocketProvider;
 
-export function getProvider(): ethers.JsonRpcProvider {
+let provider: ProviderType;
+
+export function getProvider(): ProviderType {
   if (!provider) {
-    provider = new ethers.JsonRpcProvider(process.env.ETH_RPC_URL);
+    const url = process.env.ETH_RPC_URL || '';
+    if (url.startsWith('wss')) {
+      provider = new ethers.WebSocketProvider(url);
+    } else {
+      provider = new ethers.JsonRpcProvider(url);
+    }
   }
   return provider;
 }

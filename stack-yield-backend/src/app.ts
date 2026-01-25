@@ -4,6 +4,11 @@ import withdrawalsRoutes from './api/withdrawals.routes.ts';
 
 export const app = express();
 
+// Fix BigInt serialization
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

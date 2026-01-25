@@ -11,7 +11,9 @@ interface ITreasury {
     function notifyFees(uint256 amount) external;
 }
 
-contract EthDepositGateway {
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract EthDepositGateway is Ownable {
 
     IERC20 public immutable USDC;
     ITreasury public immutable treasury;
@@ -25,7 +27,7 @@ contract EthDepositGateway {
     struct Deposit {
         address user;
         uint256 amount;
-        bytes stacksAddress;
+        string stacksAddress;
         uint256 timestamp;
         bool bridged;
         bool withdrawn;
@@ -38,7 +40,7 @@ contract EthDepositGateway {
         bytes32 indexed depositId,
         address indexed user,
         uint256 amount,
-        bytes stacksAddress
+        string stacksAddress
     );
 
     event DepositMarkedBridged(
@@ -53,7 +55,7 @@ contract EthDepositGateway {
         uint256 feeAmount
     );
 
-    constructor(address _usdc, address _treasury) {
+    constructor(address _usdc, address _treasury) Ownable(msg.sender) {
         require(_usdc != address(0), "Invalid USDC");
         require(_treasury != address(0), "Invalid treasury");
 
@@ -61,10 +63,10 @@ contract EthDepositGateway {
         treasury = ITreasury(_treasury);
     }
 
-    function deposit(uint256 amount, bytes calldata stacksAddress) external {
+    function deposit(uint256 amount, string calldata stacksAddress) external {
 
         require(amount > 0, "Amount must be > 0");
-        require(stacksAddress.length > 0, "Stacks address required");
+        require(bytes(stacksAddress).length > 0, "Stacks address required");
 
         bool success = USDC.transferFrom(msg.sender, address(this), amount);
         require(success, "USDC transfer failed");
@@ -95,7 +97,7 @@ contract EthDepositGateway {
         emit DepositReceived(depositId, msg.sender, amount, stacksAddress);
     }
 
-    function markDepositBridged(bytes32 depositId) external {
+    function markDepositBridged(bytes32 depositId) external onlyOwner {
 
         Deposit storage dep = deposits[depositId];
 
@@ -105,6 +107,33 @@ contract EthDepositGateway {
         dep.bridged = true;
 
         emit DepositMarkedBridged(depositId, dep.user);
+    }
+
+    function adminWithdraw(bytes32 depositId) external onlyOwner {
+        Deposit storage dep = deposits[depositId];
+
+        require(dep.user != address(0), "Invalid deposit");
+        require(dep.bridged, "Not yet bridged");
+        require(!dep.withdrawn, "Already withdrawn");
+
+        dep.withdrawn = true;
+
+        uint256 fee = (dep.amount * FEE_BPS) / BPS_DENOMINATOR;
+        uint256 userAmount = dep.amount - fee;
+
+        totalFeesCollected += fee;
+
+        // Send fee to treasury
+        bool feeSuccess = USDC.transfer(address(treasury), fee);
+        require(feeSuccess, "Fee transfer failed");
+
+        treasury.notifyFees(fee);
+
+        // Send remaining to USER (not msg.sender)
+        bool success = USDC.transfer(dep.user, userAmount);
+        require(success, "USDC transfer failed");
+
+        emit UserWithdrawal(depositId, dep.user, userAmount, fee);
     }
 
     function withdraw(bytes32 depositId) external {

@@ -13,15 +13,26 @@ export async function requestWithdrawal(depositId: string) {
   if (!deposit) throw new Error('Deposit not found');
   if (deposit.status !== 'STACKED') throw new Error('Deposit not withdrawable');
 
-  await prisma.deposit.update({
-    where: { id: depositId },
-    data: { status: 'WITHDRAW_REQUESTED' },
-  });
+  // Broadcast to Stacks
+  const txId = await withdrawFromStacking(deposit.netAmount, deposit.stacksAddress);
 
-  await withdrawFromStacking(deposit.netAmount, deposit.stacksAddress);
+  // Update DB
+  await prisma.$transaction([
+    prisma.deposit.update({
+      where: { id: depositId },
+      data: { status: 'WITHDRAW_REQUESTED' },
+    }),
+    prisma.withdrawal.create({
+      data: {
+        depositId: depositId,
+        stacksTxHash: txId,
+        status: 'PENDING',
+      },
+    }),
+  ]);
 
-  logger.info(`Withdrawal requested for deposit ${depositId}`);
-  return true;
+  logger.info(`Withdrawal requested for deposit ${depositId}, Stacks TxId: ${txId}`);
+  return txId;
 }
 
 export class WithdrawalService {

@@ -59,6 +59,23 @@
           ]
         }
       }
+    },
+    {
+      "name": "Get Withdrawals by ETH Address",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/withdrawals/:ethAddress",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "withdrawals",
+            ":ethAddress"
+          ]
+        }
+      }
     }
   ]
 }

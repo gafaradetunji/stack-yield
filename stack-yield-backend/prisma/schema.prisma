@@ -53,6 +53,7 @@ model Deposit {
   user            User          @relation(fields: [userId], references: [id])
 
   yieldRecords    YieldRecord[]
+  withdrawal      Withdrawal?
 
   @@index([userEthAddress])
   @@map("deposits")
@@ -74,4 +75,28 @@ model YieldRecord {
   @@index([userId])
   @@index([depositId])
   @@map("yield_records")
+}
+
+enum WithdrawalStatus {
+  PENDING           // Stacks tx broadcasted
+  CONFIRMED         // Stacks tx confirmed
+  COMPLETED         // Ethereum release tx confirmed
+  FAILED
+}
+
+model Withdrawal {
+  id              String           @id @default(uuid())
+  depositId       String           @unique
+  deposit         Deposit          @relation(fields: [depositId], references: [id])
+  
+  status          WithdrawalStatus @default(PENDING)
+  
+  // Blockchain references
+  stacksTxHash    String?        // The Stacks "withdraw" transaction hash
+  ethTxHash       String?        // The Ethereum "adminWithdraw" transaction hash
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@map("withdrawals")
 }

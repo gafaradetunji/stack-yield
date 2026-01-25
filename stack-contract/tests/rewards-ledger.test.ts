@@ -29,7 +29,7 @@ describe("rewards-ledger contract", () => {
       wallet1
     );
 
-    expect(result).toBeUint(0);
+    expect(result).toBeOk(Cl.uint(0));
   });
 
   it("only admin can credit rewards and balances update", async () => {
@@ -40,7 +40,7 @@ describe("rewards-ledger contract", () => {
       tx.callPublicFn("rewards-ledger", "credit-reward", [Cl.standardPrincipal(wallet1), Cl.uint(100)], deployer),
     ]);
 
-    expect(block.receipts[0].result).toEqual("(ok true)");
+    expect(block[0].result).toBeOk(Cl.bool(true));
 
     // credit accumulates
     await simnet.mineBlock([
@@ -54,14 +54,14 @@ describe("rewards-ledger contract", () => {
       wallet1
     );
 
-    expect(result).toBeUint(150);
+    expect(result).toBeOk(Cl.uint(150));
 
     // non-admin cannot credit
     const failBlock = await simnet.mineBlock([
       tx.callPublicFn("rewards-ledger", "credit-reward", [Cl.standardPrincipal(wallet2), Cl.uint(10)], wallet1),
     ]);
 
-    expect(failBlock.receipts[0].result).toEqual("(err u400)");
+    expect(failBlock[0].result).toBeErr(Cl.uint(400));
   });
 
   it("claim-reward reverts when insufficient and succeeds when enough", async () => {
@@ -69,7 +69,7 @@ describe("rewards-ledger contract", () => {
 
     // ensure wallet2 has no reward
     let ro = simnet.callReadOnlyFn("rewards-ledger", "get-reward", [Cl2.standardPrincipal(wallet2)], wallet2);
-    expect(ro.result).toBeUint(0);
+    expect(ro.result).toBeOk(Cl2.uint(0));
 
     // admin credits wallet2 with 80
     await simnet.mineBlock([
@@ -80,13 +80,13 @@ describe("rewards-ledger contract", () => {
     const failClaim = await simnet.mineBlock([
       tx2.callPublicFn("rewards-ledger", "claim-reward", [Cl2.uint(100)], wallet2),
     ]);
-    expect(failClaim.receipts[0].result).toEqual("(err u401)");
+    expect(failClaim[0].result).toBeErr(Cl2.uint(401));
 
     // valid claim
     const okClaim = await simnet.mineBlock([
       tx2.callPublicFn("rewards-ledger", "claim-reward", [Cl2.uint(30)], wallet2),
     ]);
-    expect(okClaim.receipts[0].result).toEqual("(ok true)");
+    expect(okClaim[0].result).toBeOk(Cl2.bool(true));
 
     const { result: after } = simnet.callReadOnlyFn(
       "rewards-ledger",
@@ -94,6 +94,6 @@ describe("rewards-ledger contract", () => {
       [Cl2.standardPrincipal(wallet2)],
       wallet2
     );
-    expect(after).toBeUint(50);
+    expect(after).toBeOk(Cl2.uint(50));
   });
 });

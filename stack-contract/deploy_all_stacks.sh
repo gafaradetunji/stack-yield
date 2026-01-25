@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Load environment variables from .env if it exists
+if [ -f .env ]; then
+  echo "Loading environment variables from .env"
+  export $(grep -v '^#' .env | xargs)
+fi
+
 # Deploy all Stack Yield contracts to Stacks testnet
 # Usage:
 #   STACKS_NETWORK=testnet \
@@ -33,19 +39,15 @@ echo ""
 
 # Deploy all contracts in order
 # Order matters: vault first, then supporting contracts
-CONTRACTS="vault,swap-manager,stacking-pool,rewards-ledger"
+export CONTRACTS="vault,swap-manager,stacking-pool,rewards-ledger"
 
 echo "Deploying contracts: $CONTRACTS"
 echo ""
 
 # Run the TypeScript deployment script
-CONTRACTS="$CONTRACTS" \
-STACKS_NETWORK="$STACKS_NETWORK" \
-SENDER_ADDRESS="$SENDER_ADDRESS" \
-SENDER_PRIVATE_KEY="$SENDER_PRIVATE_KEY" \
-npx ts-node deploy_stacks.ts
+npx tsx deploy_stacks.ts
 
 echo ""
 echo "=== Deployment Complete ==="
-echo "Check the deployment summary file for contract identifiers."
+echo "Check the terminal output for contract identifiers."
 echo "View transactions on Stacks Explorer: https://explorer.hiro.so/?chain=$STACKS_NETWORK"

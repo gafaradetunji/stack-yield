@@ -12,8 +12,11 @@ export const env = {
 
   // Ethereum
   ETH_RPC_URL: process.env.ETH_RPC_URL || '',
+  ETH_PRIVATE_KEY: process.env.ETH_PRIVATE_KEY || '',
   ETH_CHAIN_ID: parseInt(process.env.ETH_CHAIN_ID || '1'),
   DEPOSIT_GATEWAY_ADDRESS: process.env.DEPOSIT_GATEWAY_ADDRESS || '',
+  USDC_ADDRESS: process.env.USDC_ADDRESS || '',
+  TREASURY_ADDRESS: process.env.TREASURY_ADDRESS || '',
 
   // Stacks
   STACKS_RPC_URL: process.env.STACKS_RPC_URL || '',

@@ -47,6 +47,17 @@ export class StacksClient {
       throw error;
     }
   }
+
+  async getTransaction(txId: string): Promise<any> {
+    try {
+      const response = await this.client.get(`/v2/transactions/${txId}`);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) return null;
+      logger.error(`Error getting transaction ${txId}:`, error);
+      throw error;
+    }
+  }
 }
 
 export default StacksClient;

@@ -4,6 +4,11 @@
     "name": "DepositReceived",
     "inputs": [
       {
+        "name": "depositId",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
         "name": "user",
         "type": "address",
         "indexed": true
@@ -15,13 +20,8 @@
       },
       {
         "name": "stacksAddress",
-        "type": "string",
+        "type": "bytes",
         "indexed": false
-      },
-      {
-        "name": "depositId",
-        "type": "uint256",
-        "indexed": true
       }
     ]
   },
@@ -41,5 +41,29 @@
       }
     ],
     "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "markDepositBridged",
+    "inputs": [
+      {
+        "name": "depositId",
+        "type": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "adminWithdraw",
+    "inputs": [
+      {
+        "name": "depositId",
+        "type": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   }
 ]

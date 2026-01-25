@@ -19,20 +19,18 @@
   - Admin minting via `mint(address, amount)`
 
 ### Treasury
-- **Address:** `0xad444cfdff8687009b4d0ba8f9368ecf7ce3b454`
-- **Explorer:** https://sepolia.basescan.org/address/0xad444cfdff8687009b4d0ba8f9368ecf7ce3b454
+- **Address:** `0x76e6561b940490f5c7d09370acbf93d594cc71e3`
+- **Explorer:** https://sepolia.basescan.org/address/0x76e6561b940490f5c7d09370acbf93d594cc71e3
 - **Verification:** ✅ Verified on Sourcify
-- **Purpose:** Fee collector and manager for the protocol
-- **Admin:** 0x8B7b33394d0592CBb623CBE31D5Fe87CF5cDb141
 
 ### EthDepositGateway
-- **Address:** `0x920b0e521c5e553007578f2518f93a942f9386a9`
-- **Explorer:** https://sepolia.basescan.org/address/0x920b0e521c5e553007578f2518f93a942f9386a9
-- **Verification:** ✅ Verified on Sourcify
+- **Address:** `0x530e4c36e2e6cf8a1ed7f4202e8e8fb26c073b82`
+- **Explorer:** https://sepolia.basescan.org/address/0x530e4c36e2e6cf8a1ed7f4202e8e8fb26c073b82
+- **Verification:** ✅ Verified on Basescan
+- **Key Changes:** `stacksAddress` is now a **string** field. You can paste your `ST...` address directly in Basescan!
 - **Purpose:** Entry point for USDC deposits and bridge orchestration
-- **Fee:** 0.2% (20 basis points)
 - **Connected USDC:** 0x6f15582cEDb7A5aB53B90fE7B367c219e4598f0b
-- **Connected Treasury:** 0xad444cfdff8687009b4d0ba8f9368ecf7ce3b454
+- **Connected Treasury:** 0x76e6561b940490f5c7d09370acbf93d594cc71e3
 
 ---
 

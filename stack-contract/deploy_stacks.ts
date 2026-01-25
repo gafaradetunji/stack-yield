@@ -1,225 +1,107 @@
-/**
- * Enhanced deploy script for Stacks contracts using @stacks/transactions
- * Supports deploying single or multiple contracts with proper nonce management
- * 
- * Single contract deployment:
- *   STACKS_NETWORK=testnet \
- *   SENDER_ADDRESS=ST... \
- *   SENDER_PRIVATE_KEY=your-hex-key \
- *   CONTRACT_PATH=contracts/vault.clar \
- *   CONTRACT_NAME=vault \
- *   npx ts-node deploy_stacks.ts
- * 
- * Multiple contracts deployment (comma-separated):
- *   STACKS_NETWORK=testnet \
- *   SENDER_ADDRESS=ST... \
- *   SENDER_PRIVATE_KEY=your-hex-key \
- *   CONTRACTS="vault,swap-manager,stacking-pool,rewards-ledger" \
- *   npx ts-node deploy_stacks.ts
- */
-
 import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
-import { StacksTestnet, StacksMainnet } from '@stacks/network';
+import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
 import {
   makeContractDeploy,
   broadcastTransaction,
-  AnchorMode,
-  PostConditionMode,
 } from '@stacks/transactions';
-
-interface DeploymentResult {
-  contractName: string;
-  txId: string;
-  success: boolean;
-  error?: string;
-}
-
-async function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function fetchAccountNonce(apiBase: string, address: string): Promise<number> {
-  const accountRes = await fetch(`${apiBase}/extended/v1/address/${address}`);
-  if (!accountRes.ok) {
-    throw new Error(`Failed fetching account data: ${await accountRes.text()}`);
-  }
-  const accountJson = await accountRes.json();
-  return accountJson.nonce ?? 0;
-}
-
-async function deployContract(
-  contractName: string,
-  contractPath: string,
-  senderKey: string,
-  nonce: number,
-  network: StacksTestnet | StacksMainnet
-): Promise<DeploymentResult> {
-  try {
-    console.log(`\n📄 Deploying ${contractName}...`);
-    console.log(`   Path: ${contractPath}`);
-    console.log(`   Nonce: ${nonce}`);
-
-    const codeBody = fs.readFileSync(contractPath, 'utf8');
-
-    const tx = await makeContractDeploy({
-      contractName,
-      codeBody,
-      senderKey,
-      fee: 5000, // Increased fee for reliability
-      nonce: Number(nonce),
-      anchorMode: AnchorMode.Any,
-      postConditionMode: PostConditionMode.Allow,
-    });
-
-    const broadcastResult = await broadcastTransaction(tx, network);
-
-    if (typeof broadcastResult === 'object' && 'error' in broadcastResult) {
-      return {
-        contractName,
-        txId: '',
-        success: false,
-        error: broadcastResult.error as string,
-      };
-    }
-
-    const txId = typeof broadcastResult === 'string' ? broadcastResult : broadcastResult.txid;
-    console.log(`   ✅ Success! TxID: ${txId}`);
-
-    return {
-      contractName,
-      txId,
-      success: true,
-    };
-  } catch (error) {
-    console.error(`   ❌ Error deploying ${contractName}:`, error);
-    return {
-      contractName,
-      txId: '',
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-}
 
 async function main() {
   const networkType = process.env.STACKS_NETWORK || 'testnet';
   const apiUrl = process.env.STACKS_API_URL || (networkType === 'testnet'
-    ? 'https://stacks-node-api.testnet.stacks.co'
-    : 'https://stacks-node-api.mainnet.stacks.co');
+    ? 'https://api.testnet.hiro.so'
+    : 'https://api.mainnet.hiro.so');
+
+  const network = networkType === 'mainnet' ? { ...STACKS_MAINNET } : { ...STACKS_TESTNET };
+  network.coreApiUrl = apiUrl.replace(/\/$/, '');
 
   const senderAddress = process.env.SENDER_ADDRESS;
   const senderKey = process.env.SENDER_PRIVATE_KEY;
 
+  // SUPPORT BATCH DEPLOYMENT
+  const contractsStr = process.env.CONTRACTS || '';
+  const singleContractPath = process.env.CONTRACT_PATH;
+
+  const contractsToDeploy = contractsStr
+    ? contractsStr.split(',').map(name => ({ name: name.trim(), path: `contracts/${name.trim()}.clar` }))
+    : singleContractPath
+      ? [{ name: process.env.CONTRACT_NAME || path.basename(singleContractPath, '.clar'), path: singleContractPath }]
+      : [];
+
+  if (contractsToDeploy.length === 0) {
+    console.error('No contracts specified for deployment. Set CONTRACTS or CONTRACT_PATH.');
+    process.exit(1);
+  }
+
   if (!senderAddress || !senderKey) {
-    console.error('❌ ERROR: Set SENDER_ADDRESS and SENDER_PRIVATE_KEY in env');
+    console.error('Set SENDER_ADDRESS and SENDER_PRIVATE_KEY in env');
     process.exit(1);
   }
 
-  const apiBase = apiUrl.replace(/\/$/, '');
-  const network = networkType === 'mainnet' ? new StacksMainnet() : new StacksTestnet();
+  const accountRes = await fetch(
+    `${network.coreApiUrl}/v2/accounts/${senderAddress}`,
+    {}
+  );
 
-  console.log('=== Stack Yield Contracts Deployment ===');
-  console.log(`Network: ${networkType}`);
-  console.log(`API: ${apiBase}`);
-  console.log(`Deployer: ${senderAddress}`);
-
-  // Determine which contracts to deploy
-  let contractsToDeploy: Array<{ name: string; path: string }> = [];
-
-  if (process.env.CONTRACTS) {
-    // Multiple contracts mode
-    const contractNames = process.env.CONTRACTS.split(',').map(s => s.trim());
-    contractsToDeploy = contractNames.map(name => ({
-      name,
-      path: `contracts/${name}.clar`,
-    }));
-  } else if (process.env.CONTRACT_PATH && process.env.CONTRACT_NAME) {
-    // Single contract mode
-    contractsToDeploy = [{
-      name: process.env.CONTRACT_NAME,
-      path: process.env.CONTRACT_PATH,
-    }];
-  } else {
-    console.error('❌ ERROR: Set either CONTRACTS (comma-separated) or CONTRACT_PATH + CONTRACT_NAME');
+  if (!accountRes.ok) {
+    console.error('Failed fetching account data:', await accountRes.text());
     process.exit(1);
   }
 
-  console.log(`\nContracts to deploy: ${contractsToDeploy.map(c => c.name).join(', ')}`);
+  const accountJson = await accountRes.json() as any;
+  let currentNonce = accountJson.nonce ?? 0;
 
-  // Fetch initial nonce
-  let currentNonce = await fetchAccountNonce(apiBase, senderAddress);
-  console.log(`Starting nonce: ${currentNonce}`);
+  console.log(`Starting deployment of ${contractsToDeploy.length} contracts to ${networkType} using ${network.coreApiUrl}`);
+  console.log(`Deployer: ${senderAddress}, Starting Nonce: ${currentNonce}`);
+  console.log('--------------------------------------------------');
 
-  const results: DeploymentResult[] = [];
-
-  // Deploy each contract sequentially
   for (const contract of contractsToDeploy) {
-    const result = await deployContract(
-      contract.name,
-      contract.path,
-      senderKey,
-      currentNonce,
-      network
-    );
+    const { name, path: contractFilePath } = contract;
 
-    results.push(result);
+    const fullPath = path.isAbsolute(contractFilePath) ? contractFilePath : path.join(process.cwd(), contractFilePath);
 
-    if (result.success) {
-      currentNonce++; // Increment nonce for next deployment
+    if (!fs.existsSync(fullPath)) {
+      console.error(`Contract file not found: ${fullPath}`);
+      continue;
+    }
 
-      // Wait between deployments to avoid rate limiting
-      if (contractsToDeploy.indexOf(contract) < contractsToDeploy.length - 1) {
-        console.log('   ⏳ Waiting 3 seconds before next deployment...');
-        await sleep(3000);
+    const codeBody = fs.readFileSync(fullPath, 'utf8');
+
+    console.log(`Deploying ${name} (nonce=${currentNonce})...`);
+
+    try {
+      const tx = await makeContractDeploy({
+        contractName: name,
+        codeBody,
+        senderKey,
+        fee: 100000, // Increased fee for testnet congestion
+        nonce: Number(currentNonce),
+        network,
+      });
+
+      const broadcastResult = await broadcastTransaction({
+        transaction: tx,
+        network,
+      });
+
+      if ('error' in broadcastResult && broadcastResult.error) {
+        console.error(`Error broadcasting ${name}:`, broadcastResult.error);
+        if ('reason' in broadcastResult) console.error(`Reason: ${broadcastResult.reason}`);
+        // Increment nonce anyway to avoid collision in next loop iteration if we want to force next
+        currentNonce++;
+      } else {
+        console.log(`Broadcast successful for ${name}. TXID: ${broadcastResult.txid}`);
+        currentNonce++;
       }
-    } else {
-      console.error(`\n⚠️  Deployment of ${contract.name} failed. Stopping batch deployment.`);
-      break;
+    } catch (err) {
+      console.error(`Failed to deploy ${name}:`, err);
     }
+    console.log('--------------------------------------------------');
   }
-
-  // Print summary
-  console.log('\n=== Deployment Summary ===');
-  results.forEach(result => {
-    if (result.success) {
-      console.log(`✅ ${result.contractName}: ${result.txId}`);
-      console.log(`   View: https://explorer.hiro.so/txid/${result.txId}?chain=${networkType}`);
-    } else {
-      console.log(`❌ ${result.contractName}: ${result.error}`);
-    }
-  });
-
-  // Save deployment info to file
-  const deploymentInfo = {
-    network: networkType,
-    deployer: senderAddress,
-    timestamp: new Date().toISOString(),
-    results: results.map(r => ({
-      contract: r.contractName,
-      txId: r.txId,
-      success: r.success,
-      error: r.error,
-      contractIdentifier: r.success ? `${senderAddress}.${r.contractName}` : null,
-    })),
-  };
-
-  const outputFile = `deployment-${networkType}-${Date.now()}.json`;
-  fs.writeFileSync(outputFile, JSON.stringify(deploymentInfo, null, 2));
-  console.log(`\n📝 Deployment info saved to: ${outputFile}`);
-
-  // Exit with error if any deployment failed
-  const hasFailures = results.some(r => !r.success);
-  if (hasFailures) {
-    console.error('\n❌ Some deployments failed. Check the summary above.');
-    process.exit(1);
-  }
-
-  console.log('\n✅ All deployments successful!');
 }
 
 main().catch(err => {
-  console.error('❌ Fatal error:', err);
+  console.error(err);
   process.exit(1);
 });
